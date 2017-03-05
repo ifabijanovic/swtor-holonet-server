@@ -1,48 +1,16 @@
-const Rx = require('rxjs/Rx');
-const FeedParser = require('feedparser');
-const request = require('request');
+const express = require('express');
+const dulfyRss = require('./dulfyRss.js');
 
-const RxRequest = (url) => {
-	return Rx.Observable.create((observer) => {
-		var req = request(url);
-		req.on('error', (error) => {
-			observer.error(error);
-		});
-		req.on('response', (response) => {
-			if (response.statusCode !== 200) {
-				return observer.error(new Error(`statusCode=${response.statusCode}`));
-			}
-			observer.next(response);
-			observer.complete();
-		});
-	});
-};
+var app = express();
+app.set('port', (process.env.PORT || 5000));
 
-const RxFeedParser = (response) => {
-	return Rx.Observable.create( (observer) => {
-		var parser = new FeedParser();
-		parser.on('error', (error) => {
-			observer.error(error);
-		});
-		parser.on('readable', () => {
-			observer.next(parser);
-		});
-		parser.on('end', () => {
-			observer.complete();
-		});
-		response.pipe(parser);
-	});
-};
+app.get('/', (request, response) => {
+	response.send('Hi!');
+});
+app.get('/run/dulfyRss', (request, response) => {
+	response.sendStatus(dulfyRss.run());
+});
 
-RxRequest('http://www.dulfy.net/category/swtor/feed')
-	.switchMap(RxFeedParser)
-	.subscribe((parser) => {
-		var post = parser.read();
-		if (post) {
-			console.log(post);
-		}
-	}, (error) => {
-		console.log(error);
-	}, () => {
-		console.log('complete');
-	});
+app.listen(app.get('port'), () => {
+	console.log('HoloNet server started on port', app.get('port'));
+});
