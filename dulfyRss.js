@@ -1,38 +1,6 @@
 const Rx = require('rxjs/Rx');
-const FeedParser = require('feedparser');
-const request = require('request');
-
-const RxRequest = (url) => {
-	return Rx.Observable.create((observer) => {
-		var req = request(url);
-		req.on('error', (error) => {
-			observer.error(error);
-		});
-		req.on('response', (response) => {
-			if (response.statusCode !== 200) {
-				return observer.error(new Error(`statusCode=${response.statusCode}`));
-			}
-			observer.next(response);
-			observer.complete();
-		});
-	});
-};
-
-const RxFeedParser = (response) => {
-	return Rx.Observable.create( (observer) => {
-		var parser = new FeedParser();
-		parser.on('error', (error) => {
-			observer.error(error);
-		});
-		parser.on('readable', () => {
-			observer.next(parser);
-		});
-		parser.on('end', () => {
-			observer.complete();
-		});
-		response.pipe(parser);
-	});
-};
+const RxRequest = require('./Rx/Request.js');
+const RxFeedParser = require('./Rx/FeedParser.js');
 
 var DulfyRss = function () {};
 
