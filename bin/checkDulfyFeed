@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const RxFirebase = require('./Rx/Firebase.js');
+const RxFirebase = require('./../Rx/Firebase.js');
 const dulfyRss = require('./dulfyRss.js');
 
 RxFirebase.init();
