@@ -18,27 +18,24 @@ RxFirebase.prototype.init = () => {
 };
 
 RxFirebase.prototype.database = {
-	on: (eventType, path) => {
+	on: (eventType, ref) => {
 		return Rx.Observable.create((observer) => {
-			var ref = admin.database().ref(path);
 			ref.on(eventType, (snapshot) => {
 				observer.next(snapshot);
 			}, (error) => {
 				observer.error(error);
 			});
-
 			return () => { ref.off(eventType); };
 		});
 	},
-	once: (eventType, path) => {
+	once: (eventType, ref) => {
 		return Rx.Observable.create((observer) => {
-			var ref = admin.database().ref(path);
 			ref.once(eventType, (snapshot) => {
 				observer.next(snapshot);
+				observer.complete();
 			}, (error) => {
 				observer.error(error);
 			});
-
 			return () => { ref.off(eventType); };
 		});
 	},

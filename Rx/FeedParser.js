@@ -1,14 +1,18 @@
 const Rx = require('rxjs/Rx');
 const FeedParser = require('feedparser');
 
-module.exports = function(response) {
-	return Rx.Observable.create( (observer) => {
-		var parser = new FeedParser();
+var RxFeedParser = function () {};
 
-		parser.on('error', (error) => { observer.error(error); });
-		parser.on('readable', () => { observer.next(parser); });
-		parser.on('end', () => { observer.complete(); });
-
-		response.pipe(parser);
+RxFeedParser.prototype.first = (response) => {
+	return Rx.Observable.create((observer) => {
+		response
+			.pipe(new FeedParser())
+			.on('error', (error) => { observer.error(error); })
+			.on('readable', function() {
+				observer.next(this.read());
+				observer.complete();
+			});
 	});
 };
+
+module.exports = new RxFeedParser();
