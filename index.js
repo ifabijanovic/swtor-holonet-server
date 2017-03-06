@@ -1,8 +1,11 @@
 const express = require('express');
+const RxFirebase = require('./Rx/Firebase.js');
 const dulfyRss = require('./dulfyRss.js');
 
 var app = express();
 app.set('port', (process.env.PORT || 5000));
+
+RxFirebase.init();
 
 app.get('/', (request, response) => {
 	response.send('Hi!');

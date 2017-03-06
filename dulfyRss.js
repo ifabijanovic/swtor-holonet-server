@@ -1,11 +1,12 @@
 const Rx = require('rxjs/Rx');
 const RxRequest = require('./Rx/Request.js');
 const RxFeedParser = require('./Rx/FeedParser.js');
+const RxFirebase = require('./Rx/Firebase.js');
 
 var DulfyRss = function () {};
 
 DulfyRss.prototype.run = () => {
-	var dulfyFeedUrl = process.env.dulfyFeedUrl;
+	var dulfyFeedUrl = process.env.dulfy_feed_url;
 	if (!dulfyFeedUrl) {
 		console.log('dulfyFeedUrl not configured.');
 		return 500;
