@@ -4,4 +4,4 @@ const RxFirebase = require('./../Rx/Firebase.js');
 const dulfyRss = require('./../dulfyRss.js');
 
 RxFirebase.init();
-dulfyRss.run();
+dulfyRss.run(true);

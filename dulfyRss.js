@@ -10,7 +10,7 @@ const notificationTopic = '/topics/dulfy';
 
 var DulfyRss = function () {};
 
-DulfyRss.prototype.run = () => {
+DulfyRss.prototype.run = (isTask) => {
 	var dulfyFeedUrl = process.env.dulfy_feed_url;
 	if (!dulfyFeedUrl) {
 		console.log('dulfyFeedUrl not configured.');
@@ -79,8 +79,12 @@ DulfyRss.prototype.run = () => {
 				.sendToTopic(notificationTopic, payload);
 
 		}).subscribe(
-			() => { console.log('Successfully sent push'); }, 
-			(error) => { console.log(error); }
+			() => { console.log('Successfully sent push'); },
+			(error) => { 
+				console.log(error);
+				if (isTask) { process.exit(); }
+			},
+			() => { if (isTask) { process.exit(); } }
 		);
 
 	return 200;
