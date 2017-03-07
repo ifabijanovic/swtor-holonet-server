@@ -1,9 +1,4 @@
-const Rx = require('rxjs/Rx');
-const admin = require('firebase-admin');
-
-var RxFirebase = function () {};
-
-RxFirebase.prototype.init = () => {
+exports.init = (admin) => {
   admin.initializeApp({
     credential: admin.credential.cert({
       "project_id": process.env.firebase_project_id,
@@ -17,9 +12,10 @@ RxFirebase.prototype.init = () => {
   });
 };
 
-RxFirebase.prototype.database = {
-  on: (eventType, ref) => {
-    return Rx.Observable.create((observer) => {
+exports.extend = (admin, observable) => {
+  admin.database.Reference.prototype.observe = function(eventType) {
+    var ref = this;
+    return observable.create((observer) => {
       ref.on(eventType, (snapshot) => {
         observer.next(snapshot);
       }, (error) => {
@@ -27,9 +23,11 @@ RxFirebase.prototype.database = {
       });
       return () => { ref.off(eventType); };
     });
-  },
-  once: (eventType, ref) => {
-    return Rx.Observable.create((observer) => {
+  };
+
+  admin.database.Reference.prototype.observeSingle = function(eventType) {
+    var ref = this;
+    return observable.create((observer) => {
       ref.once(eventType, (snapshot) => {
         observer.next(snapshot);
         observer.complete();
@@ -38,12 +36,10 @@ RxFirebase.prototype.database = {
       });
       return () => { ref.off(eventType); };
     });
-  }
-};
+  };
 
-RxFirebase.prototype.notifications = {
-  sendToTopic: (topic, payload) => {
-    return Rx.Observable.create((observer) => {
+  admin.messaging.Messaging.prototype.observeSendToTopic = function(topic, payload) {
+    return observable.create((observer) => {
       admin.messaging().sendToTopic(topic, payload)
         .then((response) => {
           observer.next(response);
@@ -53,7 +49,5 @@ RxFirebase.prototype.notifications = {
           observer.error(error);
         });
     });
-  }
+  };
 };
-
-module.exports = new RxFirebase();

@@ -8,6 +8,8 @@ const url = require('url');
 const firebasePath = 'v0/dulfy/rss';
 const notificationTopic = '/topics/dulfy';
 
+RxFirebase.extend(admin, Rx.Observable);
+
 var DulfyRss = function () {};
 
 DulfyRss.prototype.run = (done) => {
@@ -43,10 +45,11 @@ DulfyRss.prototype.run = (done) => {
     }).switchMap((item) => {
       if (!item) { return Rx.Observable.empty(); }
 
-      var query = admin.database().ref(firebasePath).child(item.id);
-      return RxFirebase
-        .database
-        .once('value', query)
+      return admin
+        .database()
+        .ref(firebasePath)
+        .child(item.id)
+        .observeSingle('value')
         .map((firItem) => {
           if (firItem.val()) { 
             console.log('Item already exists in Firebase database', item.id);
@@ -77,9 +80,7 @@ DulfyRss.prototype.run = (done) => {
         }
       };
       
-      return RxFirebase
-        .notifications
-        .sendToTopic(notificationTopic, payload);
+      return admin.messaging().observeSendToTopic(notificationTopic, payload);
 
     }).subscribe(
       () => { console.log('Successfully sent push'); },
