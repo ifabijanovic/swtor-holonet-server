@@ -38,9 +38,6 @@ RxFirebase.prototype.database = {
 			});
 			return () => { ref.off(eventType); };
 		});
-	},
-	push: (path, value) => {
-		admin.database().ref(path).push().set(value);
 	}
 };
 

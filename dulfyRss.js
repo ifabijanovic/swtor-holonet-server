@@ -10,58 +10,61 @@ const notificationTopic = '/topics/dulfy';
 
 var DulfyRss = function () {};
 
-DulfyRss.prototype.run = (isTask) => {
+DulfyRss.prototype.run = (done) => {
 	var dulfyFeedUrl = process.env.dulfy_feed_url;
 	if (!dulfyFeedUrl) {
 		console.log('dulfyFeedUrl not configured.');
 		return 500;
 	}
 
-	// Fetch newest item from Dulfy RSS feed
-	var newestFeedItem = RxRequest(dulfyFeedUrl)
+	// 1. Fetch Dulfy RSS feed
+	// 2. Take the first parsed item
+	// 3. Convert it into a simpler model
+	// 4. Check if that item already exists in Firebase database
+	// 5. If it doesn't exist save it and send out a notification
+	RxRequest(dulfyFeedUrl)
 		.switchMap(RxFeedParser.first)
 		.map((item) => {
+			if (!item.guid) { return null; }
+			var parsedUrl = url.parse(item.guid, true);
+			if (!parsedUrl || !parsedUrl.query || !parsedUrl.query.p) { 
+				console.log('Failed to parse feed item id', item.guid);
+				return null;
+			}
+
 			return {
-				id: url.parse(item.guid, true).query.p,
+				id: parsedUrl.query.p,
 				title: item.title,
 				time: new Date(item.date).getTime() / 1000,
 				url: item.guid,
 				author: item.author
 			}
-		});
-
-	// Fetch newest cached item from Firebase
-	var firebaseQuery = admin
-		.database()
-		.ref(firebasePath)
-		.orderByKey()
-		.limitToLast(1);
-
-	var newestFirebaseItem = RxFirebase
-		.database
-		.once('child_added', firebaseQuery)
-
-	// Combine the two streams
-	newestFeedItem
-		.combineLatest(newestFirebaseItem, (feedItem, firebaseItem) => {
-			// If id of two items differs, feed item is new - return it
-			var firebaseValue = firebaseItem.val();
-			if (feedItem && feedItem.id && feedItem.id !== firebaseValue.id) {
-				return feedItem;
-			}
-			return null;
+			
 		}).switchMap((item) => {
-			if (!item) {
-				console.log('No new items in feed');
-				return Rx.Observable.empty();
-			}
+			if (!item) { return Rx.Observable.empty(); }
 
-			// Save item to Firebase
-			RxFirebase
+			var query = admin.database().ref(firebasePath).child(item.id);
+			return RxFirebase
 				.database
-				.push(firebasePath, item);
+				.once('value', query)
+				.map((firItem) => {
+					if (firItem.val()) { 
+						console.log('Item already exists in Firebase database', item.id);
+						return null;
+					}
+					return item;
+				});
 
-			// Send notification
+		}).switchMap((item) => {
+			if (!item) { return Rx.Observable.empty(); }
+
+			admin.database().ref(firebasePath).child(item.id).set({
+				title: item.title,
+				time: item.time,
+				url: item.url,
+				author: item.author
+			});
+
 			var payload = {
 				notification: {
 					body: item.title,
@@ -82,9 +85,12 @@ DulfyRss.prototype.run = (isTask) => {
 			() => { console.log('Successfully sent push'); },
 			(error) => { 
 				console.log(error);
-				if (isTask) { process.exit(); }
+				if (done) { done(); }
 			},
-			() => { if (isTask) { process.exit(); } }
+			() => {
+				console.log('DulfyRss.run completed');
+				if (done) { done(); }
+			}
 		);
 
 	return 200;
