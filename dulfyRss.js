@@ -42,14 +42,16 @@ DulfyRss.prototype.run = (done) => {
         author: item.author
       }
       
-    }).switchMap((item) => {
+    })
+    .switchMap((item) => {
       if (!item) { return Rx.Observable.empty(); }
 
       return admin
         .database()
         .ref(firebasePath)
         .child(item.id)
-        .observeSingle('value')
+        .rx()
+        .once('value')
         .map((firItem) => {
           if (firItem.val()) { 
             console.log('Item already exists in Firebase database', item.id);
@@ -58,15 +60,20 @@ DulfyRss.prototype.run = (done) => {
           return item;
         });
 
-    }).switchMap((item) => {
+    })
+    .switchMap((item) => {
       if (!item) { return Rx.Observable.empty(); }
 
-      admin.database().ref(firebasePath).child(item.id).set({
-        title: item.title,
-        time: item.time,
-        url: item.url,
-        author: item.author
-      });
+      admin
+        .database()
+        .ref(firebasePath)
+        .child(item.id)
+        .set({
+          title: item.title,
+          time: item.time,
+          url: item.url,
+          author: item.author
+        });
 
       var payload = {
         notification: {
@@ -80,7 +87,10 @@ DulfyRss.prototype.run = (done) => {
         }
       };
       
-      return admin.messaging().observeSendToTopic(notificationTopic, payload);
+      return admin
+        .messaging()
+        .rx()
+        .sendToTopic(notificationTopic, payload);
 
     }).subscribe(
       () => { console.log('Successfully sent push'); },

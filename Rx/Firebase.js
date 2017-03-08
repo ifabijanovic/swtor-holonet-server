@@ -13,41 +13,49 @@ exports.init = (admin) => {
 };
 
 exports.extend = (admin, observable) => {
-  admin.database.Reference.prototype.observe = function(eventType) {
+  admin.database.Reference.prototype.rx = function() {
     var ref = this;
-    return observable.create((observer) => {
-      ref.on(eventType, (snapshot) => {
-        observer.next(snapshot);
-      }, (error) => {
-        observer.error(error);
-      });
-      return () => { ref.off(eventType); };
-    });
-  };
-
-  admin.database.Reference.prototype.observeSingle = function(eventType) {
-    var ref = this;
-    return observable.create((observer) => {
-      ref.once(eventType, (snapshot) => {
-        observer.next(snapshot);
-        observer.complete();
-      }, (error) => {
-        observer.error(error);
-      });
-      return () => { ref.off(eventType); };
-    });
-  };
-
-  admin.messaging.Messaging.prototype.observeSendToTopic = function(topic, payload) {
-    return observable.create((observer) => {
-      admin.messaging().sendToTopic(topic, payload)
-        .then((response) => {
-          observer.next(response);
-          observer.complete();
-        })
-        .catch((error) => {
-          observer.error(error);
+    return {
+      on: function(eventType) {
+        return observable.create((observer) => {
+          ref.on(eventType, (snapshot) => {
+            observer.next(snapshot);
+          }, (error) => {
+            observer.error(error);
+          });
+          return () => { ref.off(eventType); };
         });
-    });
+      },
+      once: function(eventType) {
+        return observable.create((observer) => {
+          ref.once(eventType, (snapshot) => {
+            observer.next(snapshot);
+            observer.complete();
+          }, (error) => {
+            observer.error(error);
+          });
+          return () => { ref.off(eventType); };
+        });
+      }
+    };
+  };
+
+  admin.messaging.Messaging.prototype.rx = function() {
+    var messaging = this;
+
+    return {
+      sendToTopic: function(topic, payload) {
+        return observable.create((observer) => {
+          messaging.sendToTopic(topic, payload)
+            .then((response) => {
+              observer.next(response);
+              observer.complete();
+            })
+            .catch((error) => {
+              observer.error(error);
+            });
+        });
+      }
+    };
   };
 };
